@@ -1,0 +1,13 @@
+I have successfully updated the dashboard layout and styling to match the reference image you provided! 
+
+Here are the key changes made to the HRD Dashboard (`HRDDashboard.tsx`):
+1. **Layout**: Rebuilt the layout to feature a fixed left sidebar with navigation and tools, and a dynamic main content area.
+2. **Color Palette**: Adapted the dark green (`#047857`, `#047857`) and white color scheme from your screenshot for the KPI cards and sidebar elements.
+3. **KPI Cards**: Adjusted the four top cards to match the reference (one dark green card, three white cards) while replacing the Sales data with HR metrics like "Total Candidates", "Menunggu Interview", "Diterima", and "Kuota Terpenuhi".
+4. **Data Visualizations**: 
+   - Transformed the "Customer Habits" bar chart into a **"Tren Lamaran" (Candidate Volume)** chart.
+   - Adapted the Pie Chart to show **"Skill Demographics"** instead of Product Statistics.
+   - Built a custom **Candidate Growth** widget replacing the customer locations feature.
+5. **Global Navigation**: Removed the global header for the HRD Dashboard specifically so the new sidebar can take center stage without double navigation.
+
+The dashboard now seamlessly merges the aesthetic of the provided image with the functionality required for inclusive candidate tracking.

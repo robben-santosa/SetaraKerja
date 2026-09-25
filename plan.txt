@@ -1,0 +1,5 @@
+1. Read HRDDashboard.tsx and copy necessary data and states.
+2. Rewrite HRDDashboard.tsx with a full-screen layout (Sidebar + Main Content).
+3. The Sidebar will be fixed to the left, and the main content will be on the right.
+4. Colors will be adapted from the screenshot: dark green for primary (#064E3B, #047857), white cards, light gray background (#F3F4F6).
+5. Ensure all existing features (filtering, revealing, compliance tracking) are still available, just restructured to fit the new layout.
