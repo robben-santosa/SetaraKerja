@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { motion } from 'framer-motion';
 import type { Page } from '../types';
 import DashboardSidebar from '../components/DashboardSidebar';
 import { useUser } from '../contexts/UserContext';
@@ -26,9 +27,12 @@ export default function KandidatLayout({ currentPage, onNavigate, onLogout, chil
   return (
     <div className="flex min-h-screen" style={{ background: '#E6EEF9' }}>
 
-      {/* ── Desktop sidebar (fixed) ─────────────────────────────────────── */}
-      <aside
-        className={`hidden lg:flex flex-col fixed inset-y-0 left-0 ${collapsed ? 'w-16' : 'w-60'} z-30 overflow-visible transition-[width] duration-200`}
+      {/* ── Desktop sidebar (floating glass) ────────────────────────────── */}
+      <motion.aside
+        initial={false}
+        animate={{ width: collapsed ? 76 : 264 }}
+        transition={{ type: 'spring', stiffness: 320, damping: 34, mass: 0.7 } as const}
+        className="hidden lg:flex flex-col fixed left-6 top-6 bottom-6 z-30"
         aria-label="Navigasi sidebar"
       >
         <DashboardSidebar
@@ -41,11 +45,11 @@ export default function KandidatLayout({ currentPage, onNavigate, onLogout, chil
           collapsed={collapsed}
           onToggle={() => setCollapsed(v => !v)}
         />
-      </aside>
+      </motion.aside>
 
       {/* ── Mobile sidebar overlay ──────────────────────────────────────── */}
       {sidebarOpen && (
-        <div className="lg:hidden fixed inset-0 z-50 flex" role="dialog" aria-modal="true" aria-label="Menu navigasi">
+        <div className="lg:hidden fixed inset-0 z-50 flex overflow-y-auto p-3" role="dialog" aria-modal="true" aria-label="Menu navigasi">
           {/* Backdrop */}
           <div
             className="fixed inset-0 bg-black/50 backdrop-blur-sm"
@@ -53,7 +57,7 @@ export default function KandidatLayout({ currentPage, onNavigate, onLogout, chil
             aria-hidden="true"
           />
           {/* Drawer */}
-          <aside className="relative flex flex-col w-64 max-w-[80vw] z-10 overflow-hidden">
+          <aside className="relative flex flex-col w-72 max-w-[85vw] z-10">
             <DashboardSidebar
               currentPage={currentPage}
               onNavigate={handleNavigate}
@@ -64,18 +68,18 @@ export default function KandidatLayout({ currentPage, onNavigate, onLogout, chil
             />
             <button
               onClick={() => setSidebarOpen(false)}
-              className="absolute top-4 right-3 p-1.5 rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2"
-              style={{ background: 'rgba(255,255,255,0.15)', color: '#fff' }}
+              className="absolute -top-2 -right-2 p-2 rounded-full shadow-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+              style={{ background: '#fff', color: '#395886' }}
               aria-label="Tutup menu navigasi"
             >
-              <X size={18} aria-hidden="true" />
+              <X size={16} aria-hidden="true" />
             </button>
           </aside>
         </div>
       )}
 
       {/* ── Main area ───────────────────────────────────────────────────── */}
-      <div className={`flex-1 ${collapsed ? 'lg:ml-16' : 'lg:ml-60'} lg:pl-4 min-w-0 flex flex-col transition-[margin] duration-200`}>
+      <div className={`flex-1 ${collapsed ? 'lg:ml-[100px]' : 'lg:ml-[288px]'} lg:pl-4 min-w-0 flex flex-col transition-[margin] duration-300`}>
 
         {/* Top bar */}
         <header

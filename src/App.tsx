@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Award, Bot, BriefcaseBusiness, Eye, FileText, FolderOpen, Palette, Search, Target, Trophy, UserRound } from 'lucide-react';
+import { Award, Bot, BriefcaseBusiness, Eye, FileText, FolderOpen, Palette, Pencil, Trash2, Trophy } from 'lucide-react';
 import type { Page } from './types';
 import { AccessibilityProvider } from './contexts/AccessibilityContext';
 import { UserProvider } from './contexts/UserContext';
@@ -23,6 +23,7 @@ import JobMatchingPage from './pages/JobMatchingPage';
 import FeedbackPage from './pages/FeedbackPage';
 import { InclusiveMap } from './components/InclusiveMap';
 import KandidatLayout from './layouts/KandidatLayout';
+import KandidatApplicationsPage from './pages/KandidatApplicationsPage';
 
 // ─── Placeholder pages ────────────────────────────────────────────────────────
 
@@ -485,6 +486,43 @@ function KandidatKebutuhanPribadi({ onNavigate: _nav }: { onNavigate: (p: Page) 
     { id: 6, title: 'Closed Caption Otomatis', desc: 'Platform meeting harus mendukung caption otomatis (Google Meet / Zoom CC).',            category: 'Teknologi',   priority: 'Rendah', status: 'terpenuhi'  },
   ]);
 
+  /* ── Tambah / Edit kebutuhan ─────────────────────────────────────────── */
+  const CATEGORIES = ['Teknologi', 'Fisik', 'Jadwal', 'Komunikasi', 'Lingkungan', 'Lainnya'];
+  const PRIORITIES: Need['priority'][] = ['Tinggi', 'Sedang', 'Rendah'];
+
+  const [modal, setModal] = React.useState<{ mode: 'add' } | { mode: 'edit'; id: number } | null>(null);
+  const [form, setForm] = React.useState<{
+    title: string; desc: string; category: string; priority: Need['priority'];
+  }>({ title: '', desc: '', category: 'Teknologi', priority: 'Sedang' });
+
+  const openAdd = () => {
+    setForm({ title: '', desc: '', category: CATEGORIES[0], priority: 'Sedang' });
+    setModal({ mode: 'add' });
+  };
+  const openEdit = (n: Need) => {
+    setForm({ title: n.title, desc: n.desc, category: n.category, priority: n.priority });
+    setModal({ mode: 'edit', id: n.id });
+  };
+  const saveNeed = (e: React.FormEvent) => {
+    e.preventDefault();
+    const title = form.title.trim();
+    if (!title) return;
+    if (modal && modal.mode === 'edit') {
+      setNeeds(prev => prev.map(n => (n.id === modal.id ? { ...n, ...form, title } : n)));
+    } else {
+      setNeeds(prev => [{ id: Math.max(0, ...prev.map(n => n.id)) + 1, ...form, title, status: 'dibutuhkan' }, ...prev]);
+    }
+    setModal(null);
+  };
+  const removeNeed = (id: number) => setNeeds(prev => prev.filter(n => n.id !== id));
+
+  React.useEffect(() => {
+    if (!modal) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setModal(null); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [modal]);
+
   const columns: { key: NeedStatus; label: string; color: string; bg: string }[] = [
     { key: 'dibutuhkan', label: 'Dibutuhkan',  color: '#ef4444', bg: '#fee2e2' },
     { key: 'diproses',   label: 'Diproses',    color: '#f59e0b', bg: '#fef9c3' },
@@ -513,14 +551,18 @@ function KandidatKebutuhanPribadi({ onNavigate: _nav }: { onNavigate: (p: Page) 
   return (
     <div className="min-h-full" style={{ background: 'var(--color-bg)' }}>
       {/* ── Header ── */}
-      <div className="px-6 sm:px-8 py-6 border-b flex items-center justify-between" style={{ background: 'var(--color-card-bg)', borderColor: 'var(--color-border-subtle)' }}>
-        <div>
+      <div
+        className="px-4 sm:px-6 lg:px-8 py-5 sm:py-6 border-b flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6"
+        style={{ background: 'var(--color-card-bg)', borderColor: 'var(--color-border-subtle)' }}
+      >
+        <div className="min-w-0 flex-1">
           <p className="text-xs font-bold uppercase tracking-widest mb-1" style={{ color: '#628ECB' }}>SetaraKerja · Aksesibilitas</p>
-          <h1 className="text-2xl font-bold" style={{ color: 'var(--color-heading)' }}>Kebutuhan Pribadi</h1>
-          <p className="text-sm font-bold mt-0.5" style={{ color: 'var(--color-text-4)' }}>Kelola kebutuhan aksesibilitas & akomodasi Anda</p>
+          <h1 className="text-xl sm:text-2xl font-bold" style={{ color: 'var(--color-heading)' }}>Kebutuhan Pribadi</h1>
+          <p className="text-xs sm:text-sm font-bold mt-0.5" style={{ color: 'var(--color-text-4)' }}>Kelola kebutuhan aksesibilitas & akomodasi Anda</p>
         </div>
         <button
-          className="px-5 py-2.5 rounded-xl text-sm font-bold text-white transition-all hover:opacity-90 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-400"
+          onClick={openAdd}
+          className="shrink-0 w-full sm:w-auto px-5 py-2.5 rounded-xl text-sm font-bold text-white shadow-sm transition-all hover:opacity-90 active:scale-95 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-400"
           style={{ background: 'linear-gradient(135deg, #395886, #628ECB)' }}
         >
           + Tambah Kebutuhan
@@ -569,23 +611,52 @@ function KandidatKebutuhanPribadi({ onNavigate: _nav }: { onNavigate: (p: Page) 
                           <span className="text-xs font-bold px-2 py-0.5 rounded-md" style={{ background: 'var(--color-surface)', color: '#628ECB' }}>
                             {need.category}
                           </span>
-                          <span className="text-xs font-bold px-2 py-0.5 rounded-md flex-shrink-0" style={{ background: ps.bg, color: ps.color }}>
-                            {need.priority}
-                          </span>
+                          <div className="flex items-center gap-1.5 flex-shrink-0">
+                            <span className="text-xs font-bold px-2 py-0.5 rounded-md" style={{ background: ps.bg, color: ps.color }}>
+                              {need.priority}
+                            </span>
+                            <button
+                              onClick={() => openEdit(need)}
+                              aria-label={`Ubah kebutuhan: ${need.title}`}
+                              title="Ubah kebutuhan"
+                              className="p-1.5 rounded-md transition-colors hover:bg-[#E6EEF9] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
+                              style={{ color: '#395886' }}
+                            >
+                              <Pencil size={13} aria-hidden="true" />
+                            </button>
+                            <button
+                              onClick={() => removeNeed(need.id)}
+                              aria-label={`Hapus kebutuhan: ${need.title}`}
+                              title="Hapus kebutuhan"
+                              className="p-1.5 rounded-md transition-colors hover:bg-[#FEE2E2] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
+                              style={{ color: '#64748B' }}
+                            >
+                              <Trash2 size={13} aria-hidden="true" />
+                            </button>
+                          </div>
                         </div>
                         <h4 className="text-sm font-bold mb-1.5" style={{ color: 'var(--color-heading)' }}>{need.title}</h4>
                         <p className="text-xs font-bold leading-relaxed mb-3" style={{ color: 'var(--color-text-4)' }}>{need.desc}</p>
-                        {need.status !== 'terpenuhi' && (
+                        <div className="flex flex-col sm:flex-row gap-2">
                           <button
-                            onClick={() => moveNext(need.id)}
-                            className="w-full py-1.5 rounded-lg text-xs font-bold text-white transition-all hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
-                            style={{ background: need.status === 'dibutuhkan' ? '#f59e0b' : '#22c55e' }}
+                            onClick={() => openEdit(need)}
+                            className="flex-1 py-1.5 rounded-lg text-xs font-bold transition-all hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
+                            style={{ background: 'var(--color-surface)', color: '#395886' }}
                           >
-                            {need.status === 'dibutuhkan' ? 'Ajukan ke HRD →' : 'Tandai Terpenuhi →'}
+                            Ubah
                           </button>
-                        )}
+                          {need.status !== 'terpenuhi' && (
+                            <button
+                              onClick={() => moveNext(need.id)}
+                              className="flex-1 py-1.5 rounded-lg text-xs font-bold text-white transition-all hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
+                              style={{ background: need.status === 'dibutuhkan' ? '#f59e0b' : '#22c55e' }}
+                            >
+                              {need.status === 'dibutuhkan' ? 'Ajukan →' : 'Terpenuhi →'}
+                            </button>
+                          )}
+                        </div>
                         {need.status === 'terpenuhi' && (
-                          <div className="flex items-center gap-1.5">
+                          <div className="flex items-center gap-1.5 mt-2">
                             <span className="text-green-500 text-sm" aria-hidden="true">✓</span>
                             <span className="text-xs font-bold" style={{ color: '#22c55e' }}>Kebutuhan telah terpenuhi</span>
                           </div>
@@ -599,332 +670,124 @@ function KandidatKebutuhanPribadi({ onNavigate: _nav }: { onNavigate: (p: Page) 
           })}
         </div>
       </div>
-    </div>
-  );
-}
 
-function KandidatApplications({ onNavigate }: { onNavigate: (p: Page) => void }) {
-  const apps = [
-    {
-      company: 'PT Telkom Indonesia', job: 'Frontend Developer',
-      dateDay: 'Sen', dateNum: '20',
-      matchScore: 86, sparkPts: '0,18 12,16 24,19 36,14 48,17 60,13 72,15',
-      statusLabel: 'Interview', timeLabel: '4j 30m', timeDesc: 'Waktu Review',
-      action: 'interview' as Page,
-      rowBg: '#1B3A5C', accent: '#7EB3E8',
-    },
-    {
-      company: 'Tokopedia', job: 'UI/UX Designer',
-      dateDay: 'Sel', dateNum: '18',
-      matchScore: 72, sparkPts: '0,20 12,17 24,21 36,16 48,19 60,16 72,18',
-      statusLabel: 'Diseleksi', timeLabel: '3j 20m', timeDesc: 'Waktu Aktif',
-      action: null as Page | null,
-      rowBg: '#1E4672', accent: '#628ECB',
-    },
-    {
-      company: 'Gojek', job: 'React Developer',
-      dateDay: 'Rab', dateNum: '22',
-      matchScore: 60, sparkPts: '0,22 12,24 36,20 48,23 60,21 72,22',
-      statusLabel: 'Terkirim', timeLabel: '2j 45m', timeDesc: 'Waktu Input',
-      action: null as Page | null,
-      rowBg: '#234D7B', accent: '#8AAEE0',
-    },
-    {
-      company: 'Bukalapak', job: 'Product Designer',
-      dateDay: 'Kam', dateNum: '10',
-      matchScore: 95, sparkPts: '0,10 12,8 24,11 36,6 48,9 60,6 72,7',
-      statusLabel: 'Diterima', timeLabel: '14 hari', timeDesc: 'Sejak Melamar',
-      action: null as Page | null,
-      rowBg: '#1A3D2E', accent: '#6EC99A',
-    },
-  ];
-
-  const statBars = [
-    { label: 'Lamaran Aktif', pct: 75, color: '#628ECB' },
-    { label: 'Lolos Seleksi', pct: 50, color: '#395886' },
-    { label: 'Interview Rate', pct: 25, color: '#8AAEE0' },
-  ];
-
-  const gantt = [
-    { label: 'Telkom', start: 0, end: 45, color: '#395886' },
-    { label: 'Tokopedia', start: 22, end: 66, color: '#628ECB' },
-    { label: 'Gojek', start: 52, end: 90, color: '#8AAEE0' },
-    { label: 'Bukalapak', start: 8, end: 100, color: '#6EC99A' },
-  ];
-
-  const timeLabels = ['Sep 10', 'Sep 14', 'Sep 18', 'Sep 22', 'Sep 26'];
-
-  const schedule = [
-    { time: '09:30', job: 'Technical Interview', company: 'PT Telkom', icon: Target },
-    { time: '10:40', job: 'HR Screening', company: 'Tokopedia', icon: UserRound },
-    { time: '11:50', job: 'Portfolio Review', company: 'Gojek', icon: FolderOpen },
-  ];
-
-  const donutR = 50;
-  const donutCirc = 2 * Math.PI * donutR;
-
-  return (
-    <div className="min-h-full" style={{ background: 'var(--color-surface-alt)' }}>
-      <div className="mx-auto px-4 sm:px-5 py-7" style={{ maxWidth: 1120 }}>
-        <div className="flex gap-5 items-start">
-
-          {/* ── Main card ── */}
-          <div className="flex-1 min-w-0 rounded-3xl shadow-sm overflow-hidden" style={{ background: 'var(--color-card-bg)' }}>
-
-            {/* Card header */}
-            <div className="px-7 pt-7 pb-5 flex items-start justify-between">
+      {/* ── Modal Tambah / Edit Kebutuhan ── */}
+      {modal && (
+        <div className="fixed inset-0 z-[70] flex items-end sm:items-center justify-center p-3 sm:p-6" role="dialog" aria-modal="true" aria-labelledby="need-modal-title">
+          <button
+            type="button"
+            aria-label="Tutup dialog"
+            className="absolute inset-0 bg-black/45 backdrop-blur-[2px]"
+            onClick={() => setModal(null)}
+          />
+          <form
+            onSubmit={saveNeed}
+            className="relative w-full max-w-lg rounded-3xl border p-5 sm:p-6 shadow-2xl max-h-[90vh] overflow-y-auto"
+            style={{ background: 'var(--color-card-bg)', borderColor: 'var(--color-border-subtle)' }}
+          >
+            <div className="flex items-start justify-between gap-4 mb-5">
               <div>
-                <h1 className="text-2xl font-bold" style={{ color: 'var(--color-heading)' }}>Semua Lamaran</h1>
-                <p className="text-sm mt-0.5" style={{ color: '#628ECB' }}>Pantau perkembangan lamaranmu</p>
+                <p className="text-xs font-bold uppercase tracking-widest mb-1" style={{ color: '#628ECB' }}>
+                  {modal.mode === 'add' ? 'Baru' : 'Ubah data'}
+                </p>
+                <h2 id="need-modal-title" className="text-lg font-bold" style={{ color: 'var(--color-heading)' }}>
+                  {modal.mode === 'add' ? 'Tambah Kebutuhan' : 'Edit Kebutuhan'}
+                </h2>
               </div>
-              <div className="relative">
-                <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--color-text-4)' }} />
+              <button
+                type="button"
+                onClick={() => setModal(null)}
+                aria-label="Tutup"
+                className="p-2 rounded-lg transition-colors hover:bg-[#FEE2E2] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
+                style={{ color: 'var(--color-text-4)' }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="flex flex-col gap-4">
+              <label className="block">
+                <span className="block text-xs font-bold uppercase tracking-wider mb-1.5" style={{ color: 'var(--color-text-4)' }}>
+                  Nama kebutuhan <span style={{ color: '#ef4444' }}>*</span>
+                </span>
                 <input
-                  type="search"
-                  placeholder="Cari lamaran..."
-                  className="pl-8 pr-4 py-2 rounded-full text-sm outline-none focus:ring-2 focus:ring-blue-300"
-                  style={{ background: 'var(--color-surface-alt)', border: 'none', width: 190 }}
+                  autoFocus
+                  required
+                  value={form.title}
+                  onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
+                  placeholder="Contoh: Jeda istirahat tambahan"
+                  className="w-full rounded-xl border px-3.5 py-2.5 text-sm font-bold outline-none transition-all focus:ring-4 focus:ring-blue-400/30"
+                  style={{ background: 'var(--color-bg)', borderColor: 'var(--color-border-subtle)', color: 'var(--color-heading)' }}
                 />
-              </div>
-            </div>
+              </label>
 
-            {/* Inner two-col: rows+bottom | stats */}
-            <div className="flex">
+              <label className="block">
+                <span className="block text-xs font-bold uppercase tracking-wider mb-1.5" style={{ color: 'var(--color-text-4)' }}>
+                  Deskripsi
+                </span>
+                <textarea
+                  rows={3}
+                  value={form.desc}
+                  onChange={e => setForm(f => ({ ...f, desc: e.target.value }))}
+                  placeholder="Jelaskan kebutuhan Anda dan dampaknya saat bekerja…"
+                  className="w-full rounded-xl border px-3.5 py-2.5 text-sm font-bold outline-none transition-all resize-y focus:ring-4 focus:ring-blue-400/30"
+                  style={{ background: 'var(--color-bg)', borderColor: 'var(--color-border-subtle)', color: 'var(--color-heading)' }}
+                />
+              </label>
 
-              {/* Left: application rows + bottom */}
-              <div className="flex-1 min-w-0">
-                {apps.map((app, i) => (
-                  <div
-                    key={i}
-                    className="px-6 py-4 flex items-center gap-4 animate-slide-up opacity-0"
-                    style={{ background: app.rowBg, animationDelay: `${0.1 + i * 0.1}s`, animationFillMode: "forwards" }}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <label className="block">
+                  <span className="block text-xs font-bold uppercase tracking-wider mb-1.5" style={{ color: 'var(--color-text-4)' }}>Kategori</span>
+                  <select
+                    value={form.category}
+                    onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
+                    className="w-full rounded-xl border px-3.5 py-2.5 text-sm font-bold outline-none transition-all focus:ring-4 focus:ring-blue-400/30"
+                    style={{ background: 'var(--color-bg)', borderColor: 'var(--color-border-subtle)', color: 'var(--color-heading)' }}
                   >
-                    {/* Date badge */}
-                    <div className="rounded-xl px-3 py-2 text-center flex-shrink-0" style={{ background: 'rgba(255,255,255,0.1)', minWidth: 50 }}>
-                      <div className="text-xs font-medium leading-none mb-1" style={{ color: app.accent }}>{app.dateDay}</div>
-                      <div className="text-2xl font-bold text-white leading-none">{app.dateNum}</div>
-                    </div>
-
-                    {/* Company + job */}
-                    <div className="flex-1 min-w-0">
-                      <div className="text-white font-semibold text-sm truncate">{app.job}</div>
-                      <div className="text-xs mt-0.5 truncate" style={{ color: app.accent }}>{app.company}</div>
-                    </div>
-
-                    {/* Sparkline + match score */}
-                    <div className="flex flex-col items-center gap-0.5 flex-shrink-0">
-                      <svg width="72" height="28" viewBox="0 0 72 28" aria-hidden="true">
-                        <polyline
-                          points={app.sparkPts}
-                          fill="none"
-                          stroke="rgba(255,255,255,0.5)"
-                          strokeWidth="2"
-                          strokeLinejoin="round"
-                          strokeLinecap="round"
-                        />
-                      </svg>
-                      <div className="text-white text-sm font-bold leading-none">{app.matchScore}%</div>
-                      <div className="text-xs" style={{ color: app.accent }}>Match Score</div>
-                    </div>
-
-                    {/* Time */}
-                    <div className="text-center flex-shrink-0">
-                      <div className="text-white font-bold text-sm">{app.timeLabel}</div>
-                      <div className="text-xs mt-0.5" style={{ color: app.accent }}>{app.timeDesc}</div>
-                    </div>
-
-                    {/* Status */}
-                    <div className="text-center flex-shrink-0" style={{ minWidth: 86 }}>
-                      <div className="text-white font-bold text-sm">{app.statusLabel}</div>
-                      <div className="text-xs mt-0.5" style={{ color: app.accent }}>Status</div>
-                    </div>
-
-                    {/* Action button */}
-                    <div className="flex-shrink-0" style={{ minWidth: 56 }}>
-                      {app.action && (
-                        <button
-                          onClick={() => onNavigate(app.action!)}
-                          className="text-xs font-bold px-3 py-1.5 rounded-xl transition-all hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
-                          style={{ background: 'rgba(255,255,255,0.15)', color: 'white', border: '1px solid rgba(255,255,255,0.3)' }}
-                        >Buka</button>
-                      )}
-                    </div>
-                  </div>
-                ))}
-
-                {/* Bottom: Gantt + Schedule */}
-                <div className="grid grid-cols-5" style={{ borderTop: '1px solid var(--color-surface-alt)' }}>
-                  {/* Gantt timeline */}
-                  <div className="col-span-3 px-7 py-6" style={{ borderRight: '1px solid var(--color-surface-alt)' }}>
-                    <h3 className="font-semibold text-sm mb-0.5" style={{ color: 'var(--color-heading)' }}>Progres Lamaran</h3>
-                    <p className="text-xs mb-4" style={{ color: 'var(--color-border)' }}>Timeline per perusahaan</p>
-                    <div className="flex justify-between mb-2 pl-16">
-                      {timeLabels.map(t => (
-                        <span key={t} className="text-xs" style={{ color: 'var(--color-border)' }}>{t}</span>
-                      ))}
-                    </div>
-                    <div className="space-y-3">
-                      {gantt.map((g, i) => (
-                        <div key={i} className="flex items-center gap-3">
-                          <span className="text-xs w-14 text-right flex-shrink-0" style={{ color: '#628ECB' }}>{g.label}</span>
-                          <div className="flex-1 h-5 rounded-full relative overflow-hidden" style={{ background: 'var(--color-surface-alt)' }}>
-                            <div
-                              className="absolute h-full rounded-full"
-                              style={{ left: `${g.start}%`, width: `${g.end - g.start}%`, background: g.color, opacity: 0.85 }}
-                            />
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Upcoming schedule */}
-                  <div className="col-span-2 px-6 py-6">
-                    <h3 className="font-semibold text-sm mb-0.5" style={{ color: 'var(--color-heading)' }}>Jadwal Mendatang</h3>
-                    <p className="text-xs mb-4" style={{ color: 'var(--color-border)' }}>Interview &amp; screening</p>
-                    <div className="space-y-4">
-                      {schedule.map((s, i) => (
-                        <div key={i} className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'var(--color-surface-alt)' }}><s.icon size={15} style={{ color: '#395886' }} /></div>
-                          <div className="flex-1 min-w-0">
-                            <div className="text-xs font-semibold truncate" style={{ color: 'var(--color-heading)' }}>{s.job}</div>
-                            <div className="text-xs" style={{ color: 'var(--color-border)' }}>{s.company}</div>
-                          </div>
-                          <span className="text-xs font-bold flex-shrink-0" style={{ color: '#628ECB' }}>{s.time}</span>
-                        </div>
-                      ))}
-                    </div>
-                    <button
-                      onClick={() => onNavigate('interview')}
-                      className="mt-5 w-full py-2.5 rounded-xl text-xs font-bold text-white transition-all hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
-                      style={{ background: 'linear-gradient(135deg, #395886, #628ECB)' }}
-                    >Lihat Semua Jadwal</button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Right: stats panel */}
-              <div className="w-52 flex-shrink-0 px-5 py-6" style={{ borderLeft: '1px solid var(--color-surface-alt)' }}>
-                <h3 className="font-semibold text-sm mb-0.5" style={{ color: 'var(--color-heading)' }}>Statistik Sep</h3>
-                <p className="text-xs mb-5" style={{ color: 'var(--color-border)' }}>Ringkasan lamaran</p>
-                {/* Donut chart */}
-                <div className="flex justify-center mb-5">
-                  <svg width="128" height="128" viewBox="0 0 140 140" aria-label="4 total lamaran, 75% progres">
-                    <defs>
-                      <linearGradient id="dGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                        <stop offset="0%" stopColor="#395886" />
-                        <stop offset="100%" stopColor="#628ECB" />
-                      </linearGradient>
-                    </defs>
-                    <circle cx="70" cy="70" r={donutR} fill="none" stroke="var(--color-surface-alt)" strokeWidth="14" />
-                    <circle
-                      cx="70" cy="70" r={donutR}
-                      fill="none"
-                      stroke="url(#dGrad)"
-                      strokeWidth="14"
-                      strokeLinecap="round"
-                      strokeDasharray={`${0.75 * donutCirc} ${donutCirc}`}
-                      transform="rotate(-90 70 70)"
-                    />
-                    <text x="70" y="64" textAnchor="middle" fontSize="26" fontWeight="bold" fill="var(--color-heading)">4</text>
-                    <text x="70" y="82" textAnchor="middle" fontSize="10" fill="var(--color-border)">Lamaran</text>
-                  </svg>
-                </div>
-                {/* Progress bars */}
-                <div className="space-y-4">
-                  {statBars.map((b, i) => (
-                    <div key={i}>
-                      <div className="flex justify-between mb-1">
-                        <span className="text-xs" style={{ color: 'var(--color-heading)' }}>{b.label}</span>
-                        <span className="text-xs font-bold" style={{ color: b.color }}>{b.pct}%</span>
-                      </div>
-                      <div className="h-2 rounded-full overflow-hidden" style={{ background: 'var(--color-surface-alt)' }}>
-                        <div className="h-full rounded-full" style={{ width: `${b.pct}%`, background: b.color }} />
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                    {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </label>
+                <label className="block">
+                  <span className="block text-xs font-bold uppercase tracking-wider mb-1.5" style={{ color: 'var(--color-text-4)' }}>Prioritas</span>
+                  <select
+                    value={form.priority}
+                    onChange={e => setForm(f => ({ ...f, priority: e.target.value as Need['priority'] }))}
+                    className="w-full rounded-xl border px-3.5 py-2.5 text-sm font-bold outline-none transition-all focus:ring-4 focus:ring-blue-400/30"
+                    style={{ background: 'var(--color-bg)', borderColor: 'var(--color-border-subtle)', color: 'var(--color-heading)' }}
+                  >
+                    {PRIORITIES.map(p => <option key={p} value={p}>{p}</option>)}
+                  </select>
+                </label>
               </div>
             </div>
-          </div>
 
-          {/* ── Profile panel (right) ── */}
-          <div className="w-56 flex-shrink-0">
-            <div className="rounded-3xl overflow-hidden" style={{ background: 'linear-gradient(165deg, #0C1E35 0%, #14355C 48%, #0E4040 100%)' }}>
-              {/* Profile section */}
-              <div className="px-6 pt-8 pb-4 text-center">
-                <div
-                  className="w-16 h-16 rounded-full mx-auto mb-3 flex items-center justify-center text-3xl"
-                  style={{ background: 'rgba(255,255,255,0.15)', border: '2px solid rgba(255,255,255,0.22)' }}
-                  aria-hidden="true"
-                ><UserRound size={28} /></div>
-                <div className="text-white font-bold text-base">Kandidat #A7F3</div>
-                <div className="text-xs mt-1 mb-4" style={{ color: '#7EB3E8' }}>Penyandang Disabilitas</div>
-                <button
-                  className="rounded-full px-5 py-1.5 text-xs font-semibold text-white mb-5 transition-all hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
-                  style={{ border: '1px solid rgba(255,255,255,0.35)' }}
-                >✏️ Edit Profil</button>
-                <div className="text-xs mb-2 font-medium" style={{ color: '#7EB3E8' }}>Periode Pencarian:</div>
-                <div className="flex gap-2 justify-center">
-                  <div className="rounded-xl px-3 py-2 text-center" style={{ background: 'rgba(255,255,255,0.1)' }}>
-                    <div className="text-xs" style={{ color: '#7EB3E8' }}>Mulai</div>
-                    <div className="text-white font-bold text-sm">01 Sep</div>
-                  </div>
-                  <div className="rounded-xl px-3 py-2 text-center" style={{ background: 'rgba(255,255,255,0.1)' }}>
-                    <div className="text-xs" style={{ color: '#7EB3E8' }}>Target</div>
-                    <div className="text-white font-bold text-sm">30 Sep</div>
-                  </div>
-                </div>
-              </div>
-
-              {/* City illustration */}
-              <div className="relative" style={{ height: 132 }}>
-                <div className="absolute top-3 left-0 right-0 text-center z-10 pointer-events-none">
-                  <div className="text-xl font-bold text-white leading-tight">Jakarta</div>
-                  <div className="text-xs" style={{ color: '#7EB3E8' }}>Jakarta, Indonesia • WIB</div>
-                </div>
-                <svg
-                  width="100%" height="132" viewBox="0 0 224 132"
-                  preserveAspectRatio="xMidYMax slice"
-                  aria-hidden="true"
-                  style={{ position: 'absolute', bottom: 0, left: 0 }}
-                >
-                  {/* Background buildings */}
-                  <rect x="8"  y="56" width="22" height="76" rx="2" fill="#1A4D6E" opacity="0.75" />
-                  <rect x="33" y="42" width="17" height="90" rx="2" fill="#1E5C85" opacity="0.82" />
-                  <rect x="54" y="50" width="24" height="82" rx="2" fill="#2468A0" opacity="0.72" />
-                  <rect x="82" y="36" width="19" height="96" rx="2" fill="#1B5A7A" opacity="0.88" />
-                  <rect x="106" y="46" width="22" height="86" rx="2" fill="#1E6890" opacity="0.72" />
-                  <rect x="133" y="39" width="20" height="93" rx="2" fill="#1A5070" opacity="0.82" />
-                  <rect x="158" y="53" width="19" height="79" rx="2" fill="#24629A" opacity="0.68" />
-                  <rect x="181" y="44" width="24" height="88" rx="2" fill="#1B5580" opacity="0.78" />
-                  {/* Ground */}
-                  <rect x="0" y="106" width="224" height="26" fill="#0D3A28" opacity="0.92" />
-                  {/* Trees */}
-                  <ellipse cx="20"  cy="104" rx="16" ry="18" fill="#1B6B4A" />
-                  <ellipse cx="204" cy="102" rx="14" ry="17" fill="#1B6B4A" />
-                  <ellipse cx="188" cy="108" rx="10" ry="13" fill="#1D7050" />
-                  {/* Water reflection */}
-                  <rect x="0" y="119" width="224" height="13" fill="#0A2840" opacity="0.68" />
-                  {/* Window lights */}
-                  <rect x="37"  y="56" width="4" height="3" rx="0.5" fill="#FFE380" opacity="0.7" />
-                  <rect x="58"  y="63" width="4" height="3" rx="0.5" fill="#FFE380" opacity="0.6" />
-                  <rect x="86"  y="46" width="4" height="3" rx="0.5" fill="#FFE380" opacity="0.8" />
-                  <rect x="110" y="57" width="4" height="3" rx="0.5" fill="#FFE380" opacity="0.6" />
-                  <rect x="137" y="49" width="4" height="3" rx="0.5" fill="#FFE380" opacity="0.7" />
-                  <rect x="163" y="62" width="4" height="3" rx="0.5" fill="#FFE380" opacity="0.5" />
-                  <rect x="185" y="54" width="4" height="3" rx="0.5" fill="#FFE380" opacity="0.65" />
-                </svg>
-              </div>
+            <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2.5 mt-6">
+              <button
+                type="button"
+                onClick={() => setModal(null)}
+                className="px-5 py-2.5 rounded-xl text-sm font-bold border transition-colors hover:opacity-80 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-400"
+                style={{ borderColor: 'var(--color-border-subtle)', color: 'var(--color-text-4)' }}
+              >
+                Batal
+              </button>
+              <button
+                type="submit"
+                className="px-6 py-2.5 rounded-xl text-sm font-bold text-white transition-all hover:opacity-90 active:scale-95 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-400"
+                style={{ background: 'linear-gradient(135deg, #395886, #628ECB)' }}
+              >
+                {modal.mode === 'add' ? 'Simpan Kebutuhan' : 'Simpan Perubahan'}
+              </button>
             </div>
-          </div>
-
+          </form>
         </div>
-      </div>
+      )}
     </div>
   );
 }
 
+function KandidatApplications(props: { onNavigate: (p: Page) => void }) {
+  return <KandidatApplicationsPage {...props} />;
+}
 function HRDCandidates({ onNavigate }: { onNavigate: (p: Page) => void }) {
   return (
     <main id="main-content" className="bg-slate-50 min-h-screen py-12 px-4">
@@ -1085,6 +948,7 @@ function AppInner() {
             onNavigate={navigate}
             userRole={userRole}
             onLogout={handleLogout}
+            onAdminLogin={() => handleLogin('hrd')}
           />
         )}
 

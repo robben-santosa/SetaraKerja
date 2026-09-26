@@ -40,16 +40,16 @@ const MOCK_SKILLS: SkillScore[] = [
 ];
 
 const MOCK_APPS: Application[] = [
-  { id: '1', jobId: 'j1', jobTitle: 'Frontend Developer', company: 'PT Telkom Indonesia', status: 'interview_requested', appliedAt: '2026-09-20' },
-  { id: '2', jobId: 'j2', jobTitle: 'UI/UX Designer', company: 'Tokopedia', status: 'screening', appliedAt: '2026-09-18' },
-  { id: '3', jobId: 'j3', jobTitle: 'React Developer', company: 'Gojek', status: 'applied', appliedAt: '2026-09-22' },
-  { id: '4', jobId: 'j4', jobTitle: 'Product Designer', company: 'Bukalapak', status: 'hired', appliedAt: '2026-09-10' },
+  { id: '1', jobId: 'j1', jobTitle: 'Administrasi Perkantoran', company: 'PT Telkom Indonesia', status: 'interview_requested', appliedAt: '2026-09-20' },
+  { id: '2', jobId: 'j2', jobTitle: 'Staf Keuangan & Akuntansi', company: 'PT Astra International', status: 'screening', appliedAt: '2026-09-18' },
+  { id: '3', jobId: 'j3', jobTitle: 'Customer Service Bisnis', company: 'Gojek', status: 'applied', appliedAt: '2026-09-22' },
+  { id: '4', jobId: 'j4', jobTitle: 'Guru Pendamping Inklusi', company: 'Yayasan Pelita Bangsa', status: 'hired', appliedAt: '2026-09-10' },
 ];
 
 const RECOMMENDED_JOBS = [
-  { id: 'r1', title: 'Frontend Engineer', company: 'BRI Digital', location: 'Remote', match: 94, salary: 'Rp 8–14 jt', accessible: true },
-  { id: 'r2', title: 'Web Developer', company: 'Traveloka', location: 'Hybrid — Jakarta', match: 88, salary: 'Rp 10–16 jt', accessible: true },
-  { id: 'r3', title: 'JavaScript Engineer', company: 'Shopee Indonesia', location: 'Remote', match: 82, salary: 'Rp 9–15 jt', accessible: false },
+  { id: 'r1', title: 'Administrasi Perkantoran', company: 'PT Telkom Indonesia', location: 'Remote', match: 92, salary: 'Rp 5–8 jt', accessible: true },
+  { id: 'r2', title: 'Staf Keuangan & Akuntansi', company: 'PT Astra International', location: 'Hybrid — Jakarta', match: 87, salary: 'Rp 6–9 jt', accessible: true },
+  { id: 'r3', title: 'Operator Produksi', company: 'PT Unilever Indonesia', location: 'Onsite — Tangerang', match: 81, salary: 'Rp 4–6 jt', accessible: false },
 ];
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
@@ -291,12 +291,12 @@ export default function KandidatDashboard({ onNavigate }: Props) {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
           {/* ── Left column ──────────────────────────────────────────────── */}
-          <div className="space-y-6">
+          <div className="flex flex-col gap-6">
 
             {/* Skill Passport card */}
             <section
               aria-labelledby="passport-heading"
-              className="bg-white rounded-2xl border p-6"
+              className="bg-white rounded-2xl border p-6 flex-shrink-0"
               style={{ borderColor: 'var(--color-surface-alt)' }}
             >
               <div className="flex items-center justify-between mb-5">
@@ -378,7 +378,7 @@ export default function KandidatDashboard({ onNavigate }: Props) {
             {/* Profile card */}
             <section
               aria-labelledby="profile-heading"
-              className="bg-white rounded-2xl border p-6"
+              className="bg-white rounded-2xl border p-6 flex-shrink-0"
               style={{ borderColor: 'var(--color-surface-alt)' }}
             >
               <h2 id="profile-heading" className="sr-only">Profil kandidat</h2>
@@ -430,7 +430,9 @@ export default function KandidatDashboard({ onNavigate }: Props) {
             </section>
 
             {/* AI Cognitive Translator */}
-            <AICognitiveTranslator />
+            <div className="flex-1 min-h-0">
+              <AICognitiveTranslator />
+            </div>
           </div>
 
           {/* ── Right column ─────────────────────────────────────────────── */}

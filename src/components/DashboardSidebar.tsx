@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import type { Page } from '../types';
+import { AnimatePresence, motion } from 'framer-motion';
 import {
   LayoutDashboard,
   Search,
@@ -14,10 +15,18 @@ import {
   MessageSquare,
   HelpCircle,
   Map,
-  Menu,
-  X,
   Heart,
+  ChevronLeft,
+  ChevronRight,
+  Moon,
+  Sun,
 } from 'lucide-react';
+import { useThemeContext } from '../contexts/ThemeContext';
+
+/** Warna utama tema SetaraKerja (navy) untuk pill navigasi aktif. */
+const NAVY = '#395886';
+/** Hover netral yang tetap terbaca pada mode terang maupun gelap. */
+const HOVER_BG = 'rgba(98,142,203,0.16)';
 
 interface NavItem {
   label: string;
@@ -47,6 +56,9 @@ const HRD_NAV: NavItem[] = [
   { label: 'Bantuan', page: 'help', icon: HelpCircle },
 ];
 
+/** Halaman utilitas ditempatkan di bagian bawah sidebar (bukan di daftar menu). */
+const UTILITY_PAGES: Page[] = ['settings', 'help'];
+
 interface Props {
   currentPage: Page;
   onNavigate: (page: Page) => void;
@@ -58,11 +70,53 @@ interface Props {
   onToggle?: () => void;
 }
 
-export default function DashboardSidebar({ currentPage, onNavigate, onLogout, userName, userAvatar, role = 'kandidat', collapsed = false, onToggle }: Props) {
+/** Label bagian yang lenyap saat sidebar diciutkan. */
+function Reveal({ show, children, className = '' }: { show: boolean; children: React.ReactNode; className?: string }) {
+  return (
+    <AnimatePresence initial={false}>
+      {show && (
+        <motion.span
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.16, ease: 'easeOut' }}
+          className={`min-w-0 overflow-hidden whitespace-nowrap ${className}`}
+        >
+          {children}
+        </motion.span>
+      )}
+    </AnimatePresence>
+  );
+}
+
+function SectionLabel({ title, count, show }: { title: string; count: number; show: boolean }) {
+  if (!show) return null;
+  return (
+    <p className="mb-2 px-3 text-[10px] font-bold uppercase tracking-[0.16em]" style={{ color: 'var(--color-text-muted)' }}>
+      {title} <span className="font-medium">{count}</span>
+    </p>
+  );
+}
+
+export default function DashboardSidebar({
+  currentPage,
+  onNavigate,
+  onLogout,
+  userName,
+  userAvatar,
+  role = 'kandidat',
+  collapsed = false,
+  onToggle,
+}: Props) {
   const navItems = role === 'hrd' ? HRD_NAV : CANDIDATE_NAV;
+  const expanded = !collapsed;
+  const { isDark, toggleTheme } = useThemeContext();
   const isActive = (page: Page) =>
     page === 'kandidat' ? currentPage === 'kandidat' : currentPage === page;
   const [clickedPage, setClickedPage] = useState<Page | null>(null);
+
+  const mainItems = navItems.filter(i => !UTILITY_PAGES.includes(i.page));
+  const helpItem = navItems.find(i => i.page === 'help');
 
   const handleNavClick = (page: Page) => {
     setClickedPage(page);
@@ -70,19 +124,68 @@ export default function DashboardSidebar({ currentPage, onNavigate, onLogout, us
     onNavigate(page);
   };
 
+  const renderItem = (item: NavItem) => {
+    const active = isActive(item.page);
+    const Icon = item.icon;
+    return (
+      <li key={item.page}>
+        <button
+          onClick={() => handleNavClick(item.page)}
+          aria-current={active ? 'page' : undefined}
+          aria-label={collapsed ? item.label : undefined}
+          title={collapsed ? item.label : undefined}
+          className={`relative flex items-center transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#628ECB] ${
+            collapsed
+              ? 'mx-auto h-10 w-10 flex-shrink-0 justify-center rounded-full'
+              : 'w-full gap-3 rounded-full px-3 py-2.5 text-[13px] font-semibold'
+          } ${clickedPage === item.page ? 'nav-click-anim' : ''}`}
+          style={
+            active
+              ? { background: NAVY, color: '#fff', boxShadow: '0 10px 20px -14px rgba(57,88,134,0.9)' }
+              : { color: 'var(--color-text-1)' }
+          }
+          onMouseEnter={e => {
+            if (!active) e.currentTarget.style.background = HOVER_BG;
+          }}
+          onMouseLeave={e => {
+            if (!active) e.currentTarget.style.background = '';
+          }}
+        >
+          <Icon size={18} aria-hidden="true" />
+          <Reveal show={expanded} className="block flex-1 text-left">
+            {item.label}
+          </Reveal>
+          {active && expanded && (
+            <span className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-white/85" aria-hidden="true" />
+          )}
+        </button>
+      </li>
+    );
+  };
+
+  const settingsActive = isActive('settings');
+
   return (
-    <div className="flex flex-col h-full" style={{ background: '#395886' }}>
-      {/* Logo */}
+    <div
+      className="flex h-full min-h-0 w-full flex-col overflow-hidden rounded-3xl"
+      style={{
+        background: 'var(--color-card-bg)',
+        border: '1px solid var(--color-border-subtle)',
+        boxShadow: '0 24px 55px -28px rgba(15,23,42,0.42), 0 6px 18px -14px rgba(15,23,42,0.25)',
+      }}
+    >
+      {/* ── Merek + tombol ciutkan ─────────────────────────────────────── */}
       <div
-        className={`flex items-center ${collapsed ? 'justify-center px-3' : 'gap-3 px-5'} py-5 flex-shrink-0`}
-        style={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}
+        className={`flex items-center gap-2.5 ${
+          expanded ? 'px-4 pb-1 pt-4' : 'flex-col gap-1.5 px-2 pb-1 pt-3'
+        }`}
       >
-        <div
-          className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-          style={{ background: 'rgba(255,255,255,0.15)' }}
+        <span
+          className="grid h-9 w-9 flex-shrink-0 place-items-center rounded-full"
+          style={{ background: `linear-gradient(135deg, ${NAVY}, #628ECB)` }}
           aria-hidden="true"
         >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true">
             <path
               d="M12 2L3 7l9 5 9-5-9-5zM3 17l9 5 9-5M3 12l9 5 9-5"
               stroke="white"
@@ -91,128 +194,137 @@ export default function DashboardSidebar({ currentPage, onNavigate, onLogout, us
               strokeLinejoin="round"
             />
           </svg>
-        </div>
-        {!collapsed && <div>
-          <div
-            className="text-xl font-bold text-white leading-none"
-            
-          >
+        </span>
+
+        <Reveal show={expanded} className="block min-w-0 flex-1">
+          <span className="block text-[15px] font-extrabold leading-none" style={{ color: 'var(--color-text-1)' }}>
             SetaraKerja
-          </div>
-          <div className="text-[11px] mt-0.5 font-medium" style={{ color: 'rgba(255,255,255,0.55)' }}>
-            Blind Hiring Protocol Platform
-          </div>
-        </div>}
-        <button onClick={onToggle} className={`${collapsed ? 'absolute top-4 -right-10 bg-[#395886] rounded-r-xl' : 'ml-auto'} p-2 text-white/70 hover:text-white`} aria-label={collapsed ? 'Buka sidebar' : 'Tutup sidebar'}>{collapsed ? <Menu size={18}/> : <X size={18}/>}</button>
+          </span>
+          <span className="mt-1 block text-[10px] font-semibold leading-none" style={{ color: 'var(--color-text-muted)' }}>
+            Blind Hiring Protocol
+          </span>
+        </Reveal>
+
+        {onToggle && (
+          <button
+            onClick={onToggle}
+            aria-expanded={expanded}
+            aria-label={collapsed ? 'Buka sidebar' : 'Ciutkan sidebar'}
+            title={collapsed ? 'Buka sidebar' : 'Ciutkan sidebar'}
+            className="grid h-7 w-7 flex-shrink-0 place-items-center rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#628ECB]"
+            style={{ color: 'var(--color-text-muted)' }}
+            onMouseEnter={e => (e.currentTarget.style.background = HOVER_BG)}
+            onMouseLeave={e => (e.currentTarget.style.background = '')}
+          >
+            {collapsed ? <ChevronRight size={16} aria-hidden="true" /> : <ChevronLeft size={16} aria-hidden="true" />}
+          </button>
+        )}
       </div>
 
-      {/* Nav */}
-      <nav className={`${collapsed ? 'px-2' : 'px-3'} py-4`} aria-label={`Menu ${role === 'hrd' ? 'HRD' : 'kandidat'}`}>
-        {!collapsed && <p className="text-xs font-semibold uppercase tracking-widest px-4 mb-3" style={{ color: 'rgba(255,255,255,0.35)' }}>
-          Menu Utama
-        </p>}
-        <ul className="space-y-0.5" role="list">
-          {navItems.map(item => {
-            const active = isActive(item.page);
-            const Icon = item.icon;
-            return (
-              <li key={item.page}>
-                <button
-                  onClick={() => handleNavClick(item.page)}
-                  aria-current={active ? 'page' : undefined}
-                  className={`w-full flex items-center ${collapsed ? 'justify-center px-2' : 'gap-3 px-4'} py-2.5 rounded-xl text-sm font-bold transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 ${clickedPage === item.page ? 'nav-click-anim' : ''}`}
-                  aria-label={collapsed ? item.label : undefined}
-                  style={{
-                    background: active ? 'rgba(255,255,255,0.18)' : 'transparent',
-                    color: active ? '#fff' : 'rgba(255,255,255,0.65)',
-                    focusVisibleRingColor: 'rgba(255,255,255,0.5)',
-                  } as React.CSSProperties}
-                  onMouseEnter={e => {
-                    if (!active) {
-                      const el = e.currentTarget;
-                      el.style.background = 'rgba(255,255,255,0.08)';
-                      el.style.color = '#fff';
-                    }
-                  }}
-                  onMouseLeave={e => {
-                    if (!active) {
-                      const el = e.currentTarget;
-                      el.style.background = 'transparent';
-                      el.style.color = 'rgba(255,255,255,0.65)';
-                    }
-                  }}
-                >
-                  <Icon size={18} aria-hidden="true" />
-                  {!collapsed && <span className="flex-1 text-left">{item.label}</span>}
-                  {active && !collapsed && (
-                    <span
-                      className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-                      style={{ background: '#B1C9EF' }}
-                      aria-hidden="true"
-                    />
-                  )}
-                </button>
-              </li>
-            );
-          })}
+      {/* ── Profil ringkas ─────────────────────────────────────────────── */}
+      <div className={`flex items-center pb-3 pt-3 ${expanded ? 'gap-2.5 px-4' : 'justify-center'}`}>
+        {userAvatar ? (
+          <img
+            src={userAvatar}
+            alt={`Foto profil ${userName}`}
+            className="h-9 w-9 flex-shrink-0 rounded-full object-cover ring-2"
+            style={{ borderColor: 'var(--color-border-subtle)' }}
+          />
+        ) : (
+          <div
+            className="grid h-9 w-9 flex-shrink-0 place-items-center rounded-full text-[13px] font-black text-white"
+            style={{ background: `linear-gradient(135deg, ${NAVY}, #4A6FA8)` }}
+            aria-hidden="true"
+          >
+            {userName.charAt(0).toUpperCase()}
+          </div>
+        )}
+        <Reveal show={expanded} className="block min-w-0 flex-1">
+          <span className="block truncate text-[13px] font-bold leading-tight" style={{ color: 'var(--color-text-1)' }}>
+            {userName}
+          </span>
+          <span
+            className="mt-0.5 flex items-center gap-1 text-[10px] font-semibold"
+            style={{ color: isDark ? '#4ADE80' : '#15803D' }}
+          >
+            <ShieldCheck size={10} aria-hidden="true" />
+            Terverifikasi
+          </span>
+        </Reveal>
+      </div>
+
+      {/* ── Navigasi ───────────────────────────────────────────────────── */}
+      <nav
+        aria-label={`Menu ${role === 'hrd' ? 'HRD' : 'kandidat'}`}
+        className={`min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-3 py-2 ${collapsed ? 'no-scrollbar' : ''}`}
+        style={
+          collapsed
+            ? undefined
+            : { scrollbarWidth: 'thin', scrollbarColor: 'rgba(57,88,134,0.3) transparent' }
+        }
+      >
+        <SectionLabel title="Menu Utama" count={mainItems.length} show={expanded} />
+        <ul className="space-y-1" role="list">
+          {mainItems.map(renderItem)}
         </ul>
       </nav>
 
-      {/* User + Logout */}
-      <div
-        className={`${collapsed ? 'px-2' : 'px-3'} mt-2 pb-5 flex-shrink-0`}
-        style={{ borderTop: '1px solid rgba(255,255,255,0.1)' }}
-      >
-        {/* User info */}
-        <div className={`flex items-center ${collapsed ? 'justify-center px-1' : 'gap-3 px-3'} pt-4 pb-3`}>
-          {userAvatar ? (
-            <img
-              src={userAvatar}
-              alt={`Foto profil ${userName}`}
-              className="w-9 h-9 rounded-full object-cover flex-shrink-0 border-2"
-              style={{ borderColor: 'rgba(255,255,255,0.3)' }}
-            />
-          ) : (
-            <div
-              className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0"
-              style={{ background: 'rgba(255,255,255,0.2)', color: '#fff' }}
-              aria-hidden="true"
+      {/* ── Bagian bawah: bantuan, keluar, pengaturan, mode gelap ──────── */}
+      <div className="shrink-0 px-3 pb-4 pt-3" style={{ borderTop: '1px solid var(--color-border-subtle)' }}>
+        <ul className="space-y-1" role="list">
+          {helpItem && renderItem(helpItem)}
+          <li>
+            <button
+              onClick={onLogout}
+              aria-label={collapsed ? 'Keluar' : undefined}
+              title={collapsed ? 'Keluar' : undefined}
+              className={`relative flex items-center transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#DC2626] ${
+                collapsed
+                  ? 'mx-auto h-10 w-10 flex-shrink-0 justify-center rounded-full'
+                  : 'w-full gap-3 rounded-full px-3 py-2.5 text-[13px] font-semibold'
+              }`}
+              style={{ color: isDark ? '#F87171' : '#B42318' }}
+              onMouseEnter={e => (e.currentTarget.style.background = isDark ? 'rgba(248,113,113,0.12)' : 'rgba(220,38,38,0.08)')}
+              onMouseLeave={e => (e.currentTarget.style.background = '')}
             >
-              {userName.charAt(0).toUpperCase()}
-            </div>
-          )}
-          {!collapsed && <div className="min-w-0 flex-1">
-            <div className="text-sm font-semibold text-white truncate leading-none">{userName}</div>
-            <div
-              className="text-[11px] flex items-center gap-1 mt-0.5"
-              style={{ color: 'rgba(255,255,255,0.55)' }}
-            >
-              <ShieldCheck size={10} aria-hidden="true" />
-              Terverifikasi
-            </div>
-          </div>}
-        </div>
+              <LogOut size={18} aria-hidden="true" />
+              <Reveal show={expanded} className="block flex-1 text-left">
+                Keluar
+              </Reveal>
+            </button>
+          </li>
+        </ul>
 
-        {/* Logout */}
-        <button
-          onClick={onLogout}
-          className={`w-full flex items-center ${collapsed ? 'justify-center px-2' : 'gap-3 px-4'} py-2.5 rounded-xl text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2`}
-          aria-label="Keluar"
-          style={{ color: 'rgba(255,255,255,0.55)' }}
-          onMouseEnter={e => {
-            const el = e.currentTarget;
-            el.style.background = 'rgba(255,100,100,0.15)';
-            el.style.color = '#ffb3b3';
-          }}
-          onMouseLeave={e => {
-            const el = e.currentTarget;
-            el.style.background = 'transparent';
-            el.style.color = 'rgba(255,255,255,0.55)';
-          }}
-        >
-          <LogOut size={18} aria-hidden="true" />
-          {!collapsed && 'Keluar'}
-        </button>
+        <div className={`mt-3 flex gap-2 ${expanded ? '' : 'flex-col items-center'}`}>
+          <button
+            onClick={() => handleNavClick('settings')}
+            aria-label="Pengaturan"
+            title="Pengaturan"
+            aria-current={settingsActive ? 'page' : undefined}
+            className="grid h-9 w-9 flex-shrink-0 place-items-center rounded-full transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#628ECB] hover:-translate-y-0.5"
+            style={
+              settingsActive
+                ? { background: NAVY, color: '#fff', boxShadow: '0 10px 20px -14px rgba(57,88,134,0.9)' }
+                : { background: NAVY, color: '#fff', boxShadow: '0 10px 20px -14px rgba(57,88,134,0.7)' }
+            }
+          >
+            <Settings size={16} aria-hidden="true" />
+          </button>
+
+          <button
+            onClick={toggleTheme}
+            aria-label={isDark ? 'Aktifkan mode terang' : 'Aktifkan mode gelap'}
+            title={isDark ? 'Mode terang' : 'Mode gelap'}
+            className="grid h-9 w-9 flex-shrink-0 place-items-center rounded-full transition-transform hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#628ECB]"
+            style={{
+              background: 'var(--color-surface)',
+              border: '1px solid var(--color-border-subtle)',
+              color: 'var(--color-text-1)',
+            }}
+          >
+            {isDark ? <Sun size={16} aria-hidden="true" /> : <Moon size={16} aria-hidden="true" />}
+          </button>
+        </div>
       </div>
     </div>
   );

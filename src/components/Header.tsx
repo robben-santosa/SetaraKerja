@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { HandMetal } from 'lucide-react';
+import { HandMetal, ShieldCheck } from 'lucide-react';
 import type { Page } from '../types';
 import { useUser } from '../contexts/UserContext';
 
@@ -8,9 +8,11 @@ interface Props {
   onNavigate: (page: Page) => void;
   userRole?: 'kandidat' | 'hrd' | null;
   onLogout?: () => void;
+  /** Pintasan khusus admin: langsung masuk tanpa form login/daftar. */
+  onAdminLogin?: () => void;
 }
 
-export default function Header({ currentPage, onNavigate, userRole, onLogout }: Props) {
+export default function Header({ currentPage, onNavigate, userRole, onLogout, onAdminLogin }: Props) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const { profile } = useUser();
 
@@ -95,6 +97,18 @@ export default function Header({ currentPage, onNavigate, userRole, onLogout }: 
         <div className="flex items-center gap-3">
           {!userRole && (
             <>
+              {onAdminLogin && (
+                <button
+                  onClick={onAdminLogin}
+                  className="flex items-center gap-1.5 text-xs font-extrabold text-white px-3.5 py-2 rounded-lg shadow-sm transition-all hover:opacity-90 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
+                  style={{ background: 'linear-gradient(135deg, #395886, #628ECB)' }}
+                  title="Khusus admin — langsung masuk tanpa login atau daftar"
+                  aria-label="Masuk langsung sebagai admin, tanpa login atau daftar"
+                >
+                  <ShieldCheck size={15} aria-hidden="true" />
+                  Admin
+                </button>
+              )}
               <button
                 onClick={() => onNavigate('login')}
                 className="hidden sm:block text-sm font-medium transition-colors px-3 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 rounded-lg"
